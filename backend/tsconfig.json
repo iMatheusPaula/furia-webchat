@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",              // Define a versão do JavaScript
+    "module": "commonjs",            // Módulo do Node.js
+    "strict": true,                  // Ativa todas as verificações de tipo estritas
+    "esModuleInterop": true,         // Permite importar módulos CommonJS no estilo ES6
+    "skipLibCheck": true,            // Ignora a checagem de tipos das bibliotecas
+    "forceConsistentCasingInFileNames": true,  // Garante que os nomes de arquivos sejam consistentes
+    "outDir": "./dist",              // Onde os arquivos compilados serão gerados
+    "rootDir": "./src",              // Onde estão os arquivos fontes
+    "resolveJsonModule": true        // Permite importar arquivos JSON
+  },
+  "include": ["src/**/*.ts"],         // Incluir todos os arquivos .ts dentro da pasta src
+  "exclude": ["node_modules"]         // Excluir a pasta node_modules
+}
