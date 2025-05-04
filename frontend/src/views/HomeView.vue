@@ -1,108 +1,157 @@
 <script setup>
 import apiClient from '@/services/apiClient.js';
 import {onMounted, reactive} from "vue";
-import ContactCard from "@/components/ContactCard.vue";
 import {useToast} from "vue-toastification";
 import IconLoading from "@/components/IconLoading.vue";
+import {useAuthStore} from "@/stores/useAuthStore.js";
+import {formatarData} from "../utils/dateFormatter.js";
 
+const authStore = useAuthStore();
 const toast = useToast();
 const state = reactive({
-  contacts: [],
-  isLoading: false
+  chats: [],
+  isLoading: false,
+  chatActive: null,
+  messages: [],
+  message: '',
+  userJoined: true,
 });
 
-async function showContacts(){
+async function loadChats() {
   state.isLoading = true;
-  await apiClient.get('/api/contact/index').then((response) => {
-    state.contacts = response.data;
+  await apiClient.get('/chat').then((response) => {
+    state.chats = response.data;
   }).catch((error) => {
     toast.error("Erro ao carregar os contatos.");
   })
   state.isLoading = false;
 }
 
-onMounted(showContacts);
+async function loadMessages(chatId) {
+  state.isLoading = true;
+  await apiClient.get(`/chat/${chatId}/messages`).then((response) => {
+    state.messages = response.data;
+    state.chatActive = chatId;
+  }).catch((error) => {
+    toast.error("Erro ao carregar as mensagens.");
+  })
+  state.isLoading = false;
+}
+
+async function sendMessage() {
+  if (state.message === '') {
+    toast.error("Digite uma mensagem.");
+    return;
+  }
+
+  await apiClient.post('/message', {
+    content: state.message,
+    chatId: state.chatActive,
+  }).then((response) => {
+    state.messages.push(response.data);
+    state.message = '';
+  }).catch((error) => {
+    toast.error("Erro ao enviar a mensagem.");
+  })
+}
+
+async function joinChat() {
+  await apiClient.post(`/chat/${state.chatActive}/join`)
+      .then(() => state.userJoined = true)
+      .catch(() => toast.error("Erro ao entrar no chat."))
+}
+
+onMounted(loadChats);
 </script>
 <template>
   <div v-if="state.isLoading">
-    <IconLoading />
+    <IconLoading/>
   </div>
-  <div v-else class="w-96 py-10 justify-center px-6 lg:w-2/6 lg:px-8">
-      <div>
-        <RouterLink to="/addContact">
-          <button class="bg-black text-white rounded-md px-3 py-2.5 text-center inline-flex items-center hover:bg-gray-800 transition duration-200">
-            <svg class="w-5 h-5 me-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="#e8eaed">
-              <path d="M720-400v-120H600v-80h120v-120h80v120h120v80H800v120h-80Zm-360-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Zm80-80h480v-32q0-11-5.5-20T580-306q-54-27-109-40.5T360-360q-56 0-111 13.5T140-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T440-640q0-33-23.5-56.5T360-720q-33 0-56.5 23.5T280-640q0 33 23.5 56.5T360-560Zm0-80Zm0 400Z"/>
-            </svg>
-            Adicionar contato
-          </button>
-        </RouterLink>
+
+  <div v-else class="w-96 py-10 justify-center px-6 lg:w-full lg:h-full lg:px-8">
+    <div class="bg-gray-600 overflow-hidden animate-rainbow-glow sm:rounded-lg flex"
+         style="min-height: 600px;">
+      <!--list chats-->
+      <div class="w-3/12 bg-gray-200 bg-opacity-25 border-r border-gray-700 overflow-y-scroll">
+        <ul>
+          <li
+              v-for="chat in state.chats"
+              :key="chat.id"
+              @click="() => loadMessages(chat.id)"
+              :class="(state.chatActive === chat.id) ? 'bg-gray-200 bg-opacity-50' : ''"
+              class="p-6 text-lg text-gray-600 leading-7 font-semibold border-b border-gray-700
+                                hover:bg-gray-200 hover:bg-opacity-50 hover:cursor-pointer"
+          >
+            <p class="flex items-center text-gray-200 hover:text-white">
+              {{ chat.name }}
+              <span class="ml-2 w-2 h-2 bg-custom-blue rounded-full"></span>
+            </p>
+          </li>
+        </ul>
       </div>
-      <div v-if="state.contacts.length === 0">
-        <div class="bg-white rounded-xl shadow-sm p-5 my-3">
-          <h1 class="text-lg text-gray-900">Nenhum contato encontrado.</h1>
+
+      <!--box message-->
+      <div v-if="state.chatActive" class="w-9/12 flex flex-col justify-between">
+        <div class="w-full p-6 flex flex-col overflow-y-scroll">
+          <!-- message -->
+          <div v-for="message in state.messages"
+               :key="message.id"
+               class="w-full mb-3 msg-scroll"
+               :class="(message.userId === authStore.user.id) ? 'text-right' : 'text-left'"
+          >
+            <p class="inline-block p-2 rounded-md"
+               style="max-width: 75%;"
+               :class="(message.userId === authStore.user.id) ? 'messageFromMe' : 'message'"
+            >
+              {{ message.content }}
+            </p>
+            <span class="block mt-1 text-xs text-gray-500">{{ formatarData(message.createdAt) }}</span>
+          </div>
+        </div>
+        <!-- send message -->
+        <div v-if="state.userJoined" class="w-full bg-gray-200 bg-opacity-25 p-6 border-t border-gray-200">
+          <form v-on:submit.prevent="sendMessage" class="flex rounded-md overflow-hidden">
+            <input v-model="state.message" type="text" class="flex-1 px-4 py-2 text-sm focus:outline-none">
+            <button class="bg-custom-blue text-white px-4 py-2">Enviar</button>
+          </form>
+        </div>
+
+        <!-- join chat -->
+        <div v-else-if="!state.userJoined && state.chatActive" class="w-full bg-gray-200 bg-opacity-25 p-6 border-t border-gray-800 space-x-4">
+          <span class="text-gray-800 text-lg">Modo espectador.
+            <span @click="joinChat" class="cursor-pointer">Clique aqui para participar {{ state.userJoined}} {{ state.chatActive}}</span>
+          </span>
         </div>
       </div>
-      <div v-else>
-        <ContactCard
-            v-for="contact in state.contacts"
-            :key="contact.id"
-            :contact="contact"
-        />
-      </div>
-
-    <div class="py-12">
-      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg flex" style="min-height: 400px; max-height: 400px ">
-          <!--list users-->
-          <div class="w-3/12 bg-gray-200 bg-opacity-25 border-r border-gray-200 overflow-y-scroll">
-            <ul>
-              <li
-                  v-for="user in users"
-                  :key="user.id"
-                  @click="() => {loadMessages(user.id)}"
-                  :class="(userActive === user.id) ? 'bg-gray-200 bg-opacity-50' : ''"
-                  class="p-6 text-lg text-gray-600 leading-7 font-semibold border-b border-gray-200
-                                hover:bg-gray-200 hover:bg-opacity-50 hover:cursor-pointer">
-
-                <p class="flex items-center">
-                  {{ user.name }}
-                  <span v-if="user.notification" class="ml-2 w-2 h-2 bg-blue-500 rounded-full"></span>
-                </p>
-              </li>
-            </ul>
-          </div>
-
-          <!-- box message-->
-          <div  class="w-9/12 flex flex-col justify-between">
-            <div class="w-full p-6 flex flex-col overflow-y-scroll">
-
-              <!-- message -->
-              <div v-for="message in messages"
-                   :key="message.id"
-                   class="w-full mb-3 msg-scroll"
-                   :class="(message.from == $page.props.auth.user.id) ? 'text-right' : 'text-left'"
-              >
-                <p class="inline-block p-2 rounded-md"
-                   style="max-width: 75%;"
-                   :class="(message.from == $page.props.auth.user.id) ? 'messageFromMe' : 'messageToMe'"
-                >
-                  {{ message.content }}
-                </p>
-                <span class="block mt-1 text-xs text-gray-500">{{ $filters.formatDate(message.created_at) }}</span>
-              </div>
-
-            </div>
-            <!-- form -->
-            <div v-if="userActive" class="w-full bg-gray-200 bg-opacity-25 p-6 border-t border-gray-200">
-              <form v-on:submit.prevent="sendMessage" class="flex rounded-md overflow-hidden border border-gray-300">
-                <input v-model="message" type="text" class="flex-1 px-4 py-2 text-sm focus:outline-none">
-                <button class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2">Enviar</button>
-              </form>
-            </div>
-          </div>
+      <div v-else class="w-9/12 relative">
+        <div class="w-full h-full flex items-center justify-center">
+          <p class="text-gray-400 text-lg">Selecione um chat para ver as mensagens.</p>
+        </div>
+        <div class="absolute inset-0 bg-contain bg-no-repeat bg-center opacity-10"
+             style="background-image: url('/images/cs-1.png');">
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style>
+.messageFromMe {
+  @apply bg-indigo-300 bg-opacity-25;
+}
+
+.message {
+  @apply bg-custom-blue bg-opacity-25;
+}
+
+@keyframes rainbow-glow {
+  0% { box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.7); }
+  33% { box-shadow: 0 0 10px 5px rgba(0, 255, 0, 0.7); }
+  66% { box-shadow: 0 0 10px 5px rgba(0, 0, 255, 0.7); }
+  100% { box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.7); }
+}
+
+.animate-rainbow-glow {
+  animation: rainbow-glow 3s linear infinite;
+}
+</style>

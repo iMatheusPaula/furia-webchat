@@ -74,4 +74,20 @@ router.post('/:chatId/join', authenticate, async (req: Request, res: Response): 
     }
 });
 
+router.get('/:chatId/messages', authenticate, async (req: Request, res: Response): Promise<any> => {
+    const {chatId} = req.params;
+
+    const messages = await prisma.message.findMany({
+        where: {chatId},
+        include: {
+            user: {
+                select: {id: true, username: true, name: true},
+            },
+        },
+        orderBy: {createdAt: 'asc'},
+    });
+
+    res.json(messages);
+});
+
 export default router;

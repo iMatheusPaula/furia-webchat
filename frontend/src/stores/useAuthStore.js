@@ -21,5 +21,5 @@ export const useAuthStore = defineStore('auth', () => {
         await apiClient.post('/logout');
         user.value = null;
     }
-    return { user, isLoggedIn, getUser, login, register, logout }
+    return {user, isLoggedIn, getUser, login, register, logout}
 }, {persist: true});

@@ -15,21 +15,37 @@ async function logoutHandler() {
 }
 </script>
 <template>
-  <header class="relative flex bg-white p-5 w-full items-center justify-between shadow-xl">
-    <div>
-      <RouterLink to="/">fuuria</RouterLink>
-    </div>
-    <div v-if="auth.isLoggedIn" class="block text-black/90">
-      <span class="px-3">Olá, {{ auth.user?.name }}</span>
-      <span
-        class="bg-black text-white rounded-md px-3 py-2.5 text-xs uppercase transition duration-200 hover:bg-gray-800 cursor-pointer"
-        @click="logoutHandler"
-      >
-        Sair
+  <div style="background-image: url('/images/background.jpg');
+              background-size: cover;
+              background-position: center;
+              background-repeat: no-repeat;"
+  >
+    <header class="relative flex px-5 py-3 w-full items-center justify-between text-gray-300 hover:text-white duration-100">
+      <div class="flex items-center gap-5">
+        <RouterLink to="/">
+          <img
+              src="/images/logo.png"
+              alt="Logo"
+              class="w-12 hover:animate-pulse"
+          />
+        </RouterLink>
+        <span class="font-stratum2 hover:shadow-lg hover:shadow-custom-blue">
+        WE ARE ALL FURIA. furia.gg
       </span>
-    </div>
-  </header>
-  <main class="min-h-screen bg-fixed grid place-items-center bg-gradient-to-r from-violet-500 to-fuchsia-500">
-    <RouterView />
-  </main>
+      </div>
+
+      <div v-if="auth.isLoggedIn" class="block">
+        <span class="px-3">Olá, {{ auth.user?.name }}</span>
+        <span
+            class="bg-custom-blue text-white rounded-sm px-3 py-2.5 text-xs uppercase transition duration-200 hover:bg-gray-800 cursor-pointer"
+            @click="logoutHandler"
+        >
+        DESCONECTAR
+      </span>
+      </div>
+    </header>
+    <main class="min-h-screen bg-fixed grid place-items-center">
+      <RouterView/>
+    </main>
+  </div>
 </template>
