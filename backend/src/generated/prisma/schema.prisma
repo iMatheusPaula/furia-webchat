@@ -15,10 +15,49 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   name      String?
-  email     String?  @unique
-  password  String?
+  username  String     @unique
+  password  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  chats     ChatUser[]
+  messages  Message[]
+}
+
+model Chat {
+  id        String     @id @default(cuid())
+  name      String
+  date      DateTime   @default(now())
+  isActive  Boolean    @default(false)
+  time      Int
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  users     ChatUser[]
+  messages  Message[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  userId    String
+  content   String
+  isPinned  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  chat Chat @relation(fields: [chatId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ChatUser {
+  id       String   @id @default(cuid())
+  chatId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([chatId, userId])
 }
