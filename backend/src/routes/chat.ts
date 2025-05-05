@@ -21,8 +21,20 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
 });
 
 router.get('/', authenticate, async (req: Request, res: Response): Promise<any> => {
-    const chats = await prisma.chat.findMany();
-    res.json(chats);
+    const chats = await prisma.chat.findMany({
+        include: {
+            _count: {
+                select: {users: true}
+            }
+        }
+    });
+
+    const chatWithJoined = chats.map((chat) => ({
+        ...chat,
+        isJoined: chat._count.users > 0,
+    }));
+
+    res.json(chatWithJoined);
 });
 
 router.get('/:id', authenticate, async (req: Request, res: Response): Promise<any> => {

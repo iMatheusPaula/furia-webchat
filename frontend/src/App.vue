@@ -19,6 +19,7 @@ async function logoutHandler() {
               background-size: cover;
               background-position: center;
               background-repeat: no-repeat;"
+        class="min-h-screen flex flex-col h-screen">
   >
     <header class="relative flex px-5 py-3 w-full items-center justify-between text-gray-300 hover:text-white duration-100">
       <div class="flex items-center gap-5">
@@ -44,7 +45,7 @@ async function logoutHandler() {
       </span>
       </div>
     </header>
-    <main class="min-h-screen bg-fixed grid place-items-center">
+    <main class="flex-1 overflow-hidden">
       <RouterView/>
     </main>
   </div>

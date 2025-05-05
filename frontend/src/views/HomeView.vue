@@ -1,11 +1,16 @@
 <script setup>
 import apiClient from '@/services/apiClient.js';
-import {onMounted, reactive} from "vue";
+import {onBeforeUnmount, onMounted, reactive} from "vue";
 import {useToast} from "vue-toastification";
 import IconLoading from "@/components/IconLoading.vue";
 import {useAuthStore} from "@/stores/useAuthStore.js";
 import {formatarData} from "../utils/dateFormatter.js";
+import {io} from "socket.io-client";
 
+const socket = io('http://localhost:3000', {
+  autoConnect: true,
+  transports: ['websocket']
+});
 const authStore = useAuthStore();
 const toast = useToast();
 const state = reactive({
@@ -14,45 +19,54 @@ const state = reactive({
   chatActive: null,
   messages: [],
   message: '',
-  userJoined: true,
+  userJoined: false
 });
 
 async function loadChats() {
   state.isLoading = true;
-  await apiClient.get('/chat').then((response) => {
-    state.chats = response.data;
-  }).catch((error) => {
-    toast.error("Erro ao carregar os contatos.");
-  })
+
+  await apiClient.get('/chat')
+      .then((response) => state.chats = response.data)
+      .catch(() => toast.error("Erro ao carregar os contatos."));
+
   state.isLoading = false;
 }
 
 async function loadMessages(chatId) {
   state.isLoading = true;
-  await apiClient.get(`/chat/${chatId}/messages`).then((response) => {
-    state.messages = response.data;
-    state.chatActive = chatId;
-  }).catch((error) => {
+
+  try {
+    await apiClient.get(`/chat/${chatId}/messages`)
+        .then((response) => {
+          state.messages = response.data;
+          state.chatActive = chatId;
+
+          const selectedChat = state.chats.find(chat => chat.id === chatId);
+          state.userJoined = selectedChat?.isJoined ?? false;
+        })
+        .catch(() => toast.error("Erro ao carregar as mensagens."));
+
+    socket.emit('joinChat', chatId);
+  } catch {
     toast.error("Erro ao carregar as mensagens.");
-  })
-  state.isLoading = false;
+  } finally {
+    state.isLoading = false;
+  }
 }
 
 async function sendMessage() {
   if (state.message === '') {
-    toast.error("Digite uma mensagem.");
     return;
   }
 
-  await apiClient.post('/message', {
-    content: state.message,
+  socket.emit('sendMessage', {
+    userId: authStore.user.id,
     chatId: state.chatActive,
-  }).then((response) => {
-    state.messages.push(response.data);
-    state.message = '';
-  }).catch((error) => {
-    toast.error("Erro ao enviar a mensagem.");
-  })
+    content: state.message,
+  });
+
+  // state.messages.push(state.message);
+  state.message = '';
 }
 
 async function joinChat() {
@@ -61,15 +75,31 @@ async function joinChat() {
       .catch(() => toast.error("Erro ao entrar no chat."))
 }
 
-onMounted(loadChats);
+socket.on('newMessage', (message) => {
+  console.log(message);
+  if (state.chatActive === message.chatId) {
+    state.messages.push(message);
+  }
+})
+
+onBeforeUnmount(() => {
+  if (state.chatActive) {
+    socket.emit('leaveChat', state.chatActive);
+  }
+})
+
+onMounted(async () => {
+  await loadChats();
+  socket.connect();
+});
 </script>
 <template>
   <div v-if="state.isLoading">
     <IconLoading/>
   </div>
 
-  <div v-else class="w-96 py-10 justify-center px-6 lg:w-full lg:h-full lg:px-8">
-    <div class="bg-gray-600 overflow-hidden animate-rainbow-glow sm:rounded-lg flex"
+  <div v-else class="w-96 py-10 justify-center px-6 lg:w-full h-full lg:px-8">
+    <div class="bg-gray-600 overflow-hidden animate-rainbow-glow sm:rounded-lg flex h-full"
          style="min-height: 600px;">
       <!--list chats-->
       <div class="w-3/12 bg-gray-200 bg-opacity-25 border-r border-gray-700 overflow-y-scroll">
@@ -91,8 +121,8 @@ onMounted(loadChats);
       </div>
 
       <!--box message-->
-      <div v-if="state.chatActive" class="w-9/12 flex flex-col justify-between">
-        <div class="w-full p-6 flex flex-col overflow-y-scroll">
+      <div v-if="state.chatActive" class="w-9/12 flex flex-col justify-between h-full">
+        <div class="w-full p-6 flex flex-col overflow-y-auto h-full">
           <!-- message -->
           <div v-for="message in state.messages"
                :key="message.id"
@@ -108,6 +138,7 @@ onMounted(loadChats);
             <span class="block mt-1 text-xs text-gray-500">{{ formatarData(message.createdAt) }}</span>
           </div>
         </div>
+
         <!-- send message -->
         <div v-if="state.userJoined" class="w-full bg-gray-200 bg-opacity-25 p-6 border-t border-gray-200">
           <form v-on:submit.prevent="sendMessage" class="flex rounded-md overflow-hidden">
@@ -117,11 +148,16 @@ onMounted(loadChats);
         </div>
 
         <!-- join chat -->
-        <div v-else-if="!state.userJoined && state.chatActive" class="w-full bg-gray-200 bg-opacity-25 p-6 border-t border-gray-800 space-x-4">
+        <div v-else-if="!state.userJoined && state.chatActive"
+             class="w-full bg-gray-200 bg-opacity-25 p-6 border-t border-gray-800 space-x-4">
           <span class="text-gray-800 text-lg">Modo espectador.
-            <span @click="joinChat" class="cursor-pointer">Clique aqui para participar {{ state.userJoined}} {{ state.chatActive}}</span>
+            <span @click="joinChat"
+                  class="cursor-pointer">Clique aqui para participar {{ state.userJoined }} {{
+                state.chatActive
+              }}</span>
           </span>
         </div>
+
       </div>
       <div v-else class="w-9/12 relative">
         <div class="w-full h-full flex items-center justify-center">
@@ -145,10 +181,18 @@ onMounted(loadChats);
 }
 
 @keyframes rainbow-glow {
-  0% { box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.7); }
-  33% { box-shadow: 0 0 10px 5px rgba(0, 255, 0, 0.7); }
-  66% { box-shadow: 0 0 10px 5px rgba(0, 0, 255, 0.7); }
-  100% { box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.7); }
+  0% {
+    box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.7);
+  }
+  33% {
+    box-shadow: 0 0 10px 5px rgba(0, 255, 0, 0.7);
+  }
+  66% {
+    box-shadow: 0 0 10px 5px rgba(0, 0, 255, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.7);
+  }
 }
 
 .animate-rainbow-glow {
