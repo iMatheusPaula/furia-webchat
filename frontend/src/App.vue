@@ -19,24 +19,22 @@ async function logoutHandler() {
               background-size: cover;
               background-position: center;
               background-repeat: no-repeat;"
-        class="min-h-screen flex flex-col h-screen">
-  >
+       class="min-h-screen flex flex-col h-screen"
+    >
     <header class="relative flex px-5 py-3 w-full items-center justify-between text-gray-300 hover:text-white duration-100">
-      <div class="flex items-center gap-5">
-        <RouterLink to="/">
+      <RouterLink to="/">
+        <div class="flex items-center gap-x-5">
           <img
               src="/images/logo.png"
               alt="Logo"
               class="w-12 hover:animate-pulse"
           />
-        </RouterLink>
-        <span class="font-stratum2 hover:shadow-lg hover:shadow-custom-blue">
-        WE ARE ALL FURIA. furia.gg
-      </span>
-      </div>
+          <span>WE ARE ALL FURIA.</span>
+        </div>
+      </RouterLink>
 
       <div v-if="auth.isLoggedIn" class="block">
-        <span class="px-3">Olá, {{ auth.user?.name }}</span>
+        <span class="px-3">Bem-vindo, {{ auth.user?.name }}</span>
         <span
             class="bg-custom-blue text-white rounded-sm px-3 py-2.5 text-xs uppercase transition duration-200 hover:bg-gray-800 cursor-pointer"
             @click="logoutHandler"

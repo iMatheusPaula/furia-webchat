@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import {createRouter, createWebHistory} from 'vue-router';
 import {useAuthStore} from "@/stores/useAuthStore";
 
 export const routes = [
@@ -9,38 +9,6 @@ export const routes = [
         meta: {
             auth: true
         }
-    },
-    {
-        path: '/addContact',
-        name: 'addContact',
-        component: () => import('@/views/ContactAddView.vue'),
-        meta: {
-            auth: true
-        }
-    },
-    {
-        path: '/contactPage/:id',
-        name: 'ContactPage',
-        component: () => import('@/views/ContactPageView.vue'),
-        meta: {
-            auth: true
-        },
-    },
-    {
-        path: '/contact/destroy/:id/:name',
-        name: 'ContactDestroy',
-        component: () => import('@/views/ContactDestroyView.vue'),
-        meta: {
-            auth: true
-        },
-    },
-    {
-        path: '/contact/update/:id',
-        name: 'ContactUpdate',
-        component: () => import('@/views/ContactUpdateView.vue'),
-        meta: {
-            auth: true
-        },
     },
     {
         path: '/login',
@@ -67,14 +35,13 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-    document.title = "Agenda :)";
+    document.title = "Webchat - Furia";
     const auth = useAuthStore();
-    if(to.meta.auth){
-        if(!auth.isLoggedIn) next({name: 'Login'});
+    if (to.meta.auth) {
+        if (!auth.isLoggedIn) next({name: 'Login'});
         else next();
-    }
-    else if(!to.meta.auth) {
-        if(auth.isLoggedIn) next({name: 'Home'});
+    } else if (!to.meta.auth) {
+        if (auth.isLoggedIn) next({name: 'Home'});
         else next();
     }
 })

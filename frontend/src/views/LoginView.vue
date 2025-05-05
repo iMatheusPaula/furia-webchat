@@ -25,17 +25,19 @@ async function loginHandler() {
 }
 </script>
 <template>
-  <div class="bg-white rounded-2xl shadow-2xl w-96 lg:w-1/3 justify-center px-6 py-20 lg:px-8">
-    <h1 class="text-gray-900 tracking-tight font-bold text-2xl text-center mb-3">Faça login na sua conta</h1>
-    <form @submit.prevent="loginHandler" class="flex flex-col p-2">
-      <input id="username" v-model="state.username" type="text" placeholder="usuário"/>
-      <input id="password" v-model="state.password" type="password" placeholder="senha"/>
-      <button id="submit-btn" type="submit">Entrar</button>
-    </form>
-    <h2 class="text-gray-900 text-center text-sm">
-      Não tem uma conta?
-      <RouterLink to="/register">Cadastre-se aqui!</RouterLink>
-    </h2>
+  <div class="min-h-screen flex items-center justify-center ">
+    <div class="bg-white rounded-2xl shadow-2xl w-96 lg:w-1/3 justify-center px-6 py-20 lg:px-8 mx-auto">
+      <h1 class="text-gray-900 tracking-tight font-bold text-2xl text-center mb-3">Faça login na sua conta</h1>
+      <form @submit.prevent="loginHandler" class="flex flex-col p-2">
+        <input id="username" v-model="state.username" type="text" placeholder="usuário"/>
+        <input id="password" v-model="state.password" type="password" placeholder="senha"/>
+        <button id="submit-btn" type="submit">Entrar</button>
+      </form>
+      <h2 class="text-gray-900 text-center text-sm">
+        Não tem uma conta?
+        <RouterLink to="/register">Cadastre-se aqui!</RouterLink>
+      </h2>
+    </div>
   </div>
 </template>
 <style scoped>
